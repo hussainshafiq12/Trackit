@@ -1,0 +1,36 @@
+package com.trackit.controller;
+
+import com.trackit.model. Expense;
+
+/**
+ * Command to edit an expense
+ */
+public class EditExpenseCommand implements Command {
+    private ExpenseManager expenseManager;
+    private Expense oldExpense;
+    private Expense newExpense;
+    private String username;
+    
+    public EditExpenseCommand(ExpenseManager expenseManager, String username, 
+                             Expense oldExpense, Expense newExpense) {
+        this.expenseManager = expenseManager;
+        this.username = username;
+        this.oldExpense = oldExpense;
+        this.newExpense = newExpense;
+    }
+    
+    @Override
+    public void execute() {
+        expenseManager.updateExpense(username, oldExpense, newExpense);
+    }
+    
+    @Override
+    public void undo() {
+        expenseManager.updateExpense(username, newExpense, oldExpense);
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Edit expense: " + oldExpense.getCategory() + " -> " + newExpense.getCategory();
+    }
+}
