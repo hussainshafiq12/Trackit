@@ -36,6 +36,37 @@ class EqualSplitStrategyTest {
     }
 
     @Test
+    @DisplayName("Should allocate fractional cent remainder to payer (mitigating risk RSK-02)")
+    void testFractionalCentRoundingAllocationToPayer() {
+        // $100.00 divided by 3 participants: 33.33 each with 1 cent remainder
+        List<String> participants = Arrays.asList("Alice", "Bob", "Charlie");
+        ArrayList<SplitDetail> result = strategy.computeShares(100.0, participants, null);
+
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        // Alice (payer / first participant) receives remainder cent
+        assertEquals(33.34, result.get(0).getAmount(), 0.001, "Payer should absorb the remainder cent");
+        assertEquals(33.33, result.get(1).getAmount(), 0.001);
+        assertEquals(33.33, result.get(2).getAmount(), 0.001);
+
+        double totalShares = result.stream().mapToDouble(SplitDetail::getAmount).sum();
+        assertEquals(100.0, totalShares, 0.001, "Total allocated shares must equal exactly total amount");
+    }
+
+    @Test
+    @DisplayName("Should allocate remainder cents correctly for irregular divisions")
+    void testIrregularFractionalDivision() {
+        // $10.00 divided by 3: 3.34 for payer, 3.33 for others
+        List<String> participants = Arrays.asList("Payer", "Member1", "Member2");
+        ArrayList<SplitDetail> result = strategy.computeShares(10.0, participants, null);
+
+        assertEquals(3.34, result.get(0).getAmount(), 0.001);
+        assertEquals(3.33, result.get(1).getAmount(), 0.001);
+        assertEquals(3.33, result.get(2).getAmount(), 0.001);
+        assertEquals(10.0, result.stream().mapToDouble(SplitDetail::getAmount).sum(), 0.001);
+    }
+
+    @Test
     @DisplayName("Should return empty list when participants list is null or empty")
     void testEmptyParticipants() {
         ArrayList<SplitDetail> resultNull = strategy.computeShares(100.0, null, null);
