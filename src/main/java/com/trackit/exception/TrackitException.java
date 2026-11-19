@@ -1,9 +1,10 @@
 package com.trackit.exception;
 
 /**
- * Base checked exception for Trackit application.
+ * Base domain runtime exception for Trackit application.
+ * Enables defensive programming across controllers, strategies, and persistence.
  */
-public class TrackitException extends Exception {
+public class TrackitException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     public TrackitException(String message) {
