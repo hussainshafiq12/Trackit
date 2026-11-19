@@ -120,7 +120,7 @@ public class SplitDetailsDialog extends JDialog {
         if (splitDetails != null && !splitDetails.isEmpty()) {
             int index = 1;
             for (SplitDetail detail : splitDetails) {
-                double percentage = (detail.getAmount() / totalAmount) * 100;
+                double percentage = totalAmount > 0 ? (detail.getAmount() / totalAmount) * 100.0 : 0.0;
                 model.addRow(new Object[]{
                     index++,
                     detail.getPersonName(),

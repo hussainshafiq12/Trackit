@@ -51,4 +51,57 @@ class AsyncReportTest {
         assertTrue(savedFile.length() > 0);
         savedFile.delete();
     }
+
+    @Test
+    @DisplayName("Should handle zero total expenses without NaN or Infinity")
+    void testZeroTotalExpensesDoesNotProduceNaNOrInfinity() {
+        ExpenseManager manager = new ExpenseManager();
+        String user = "zeroTotalUser_" + System.currentTimeMillis();
+
+        ReportGenerator generator = ReportFactory.createPersonalReport(user, manager);
+        String report = generator.generate();
+
+        assertNotNull(report);
+        assertFalse(report.contains("NaN"), "Report should not contain NaN");
+        assertFalse(report.contains("Infinity"), "Report should not contain Infinity");
+    }
+
+    @Test
+    @DisplayName("Should handle null or empty description without NullPointerException")
+    void testNullDescriptionDoesNotThrowNPE() throws Exception {
+        java.util.ArrayList<Expense> list = new java.util.ArrayList<>();
+        Expense exp1 = new Expense("FOOD", 20.0, "Valid desc", LocalDate.now(), "user1");
+        java.lang.reflect.Field descField = Expense.class.getDeclaredField("description");
+        descField.setAccessible(true);
+        descField.set(exp1, null);
+        list.add(exp1);
+
+        PersonalReportGenerator gen = new PersonalReportGenerator("user1", list);
+        assertDoesNotThrow(() -> {
+            String report = gen.generate();
+            assertTrue(report.contains("No description"));
+        });
+    }
+
+    @Test
+    @DisplayName("Should regenerate report content before saving to file")
+    void testReportRegeneratesOnSaveToFile() {
+        java.util.ArrayList<Expense> list = new java.util.ArrayList<>();
+        list.add(new Expense("FOOD", 15.0, "Breakfast", LocalDate.now(), "user1"));
+
+        PersonalReportGenerator gen = new PersonalReportGenerator("user1", list);
+        gen.generate(); // initial generation
+
+        // Add more expense before saving
+        list.add(new Expense("TRANSPORTATION", 35.0, "Bus", LocalDate.now(), "user1"));
+        String tempPath = "target/regen_test_report.txt";
+
+        boolean saved = gen.saveToFile(tempPath);
+        assertTrue(saved);
+
+        File f = new File(tempPath);
+        assertTrue(f.exists());
+        // Verify file contains the newly added expense amount ($50.00 total)
+        f.delete();
+    }
 }

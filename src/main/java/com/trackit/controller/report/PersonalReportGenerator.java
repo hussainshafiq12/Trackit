@@ -81,8 +81,8 @@ public class PersonalReportGenerator implements ReportGenerator {
             categoryTotals.entrySet().stream()
                 .sorted((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()))
                 .forEach(entry -> {
-                    double percentage = (entry.getValue() / total) * 100;
-                    String bar = "█".repeat((int)(percentage / 2));
+                    double percentage = total > 0 ? (entry.getValue() / total) * 100.0 : 0.0;
+                    String bar = total > 0 ? "█".repeat(Math.max(0, (int)(percentage / 2))) : "";
                     report.append(String.format("│  %-20s $%-12.2f (%5.1f%%)  %-20s │\n", 
                         entry.getKey(), entry.getValue(), percentage, bar));
                 });
@@ -106,16 +106,17 @@ public class PersonalReportGenerator implements ReportGenerator {
                 exp.getDate().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"))));
             report.append(String.format("│  🏷️  Category:   %-56s │\n", exp.getCategory()));
             report.append(String.format("│  💰 Amount:      $%-55.2f │\n", exp.getAmount()));
-            report.append(String.format("│  📝 Description: %-56s │\n", 
-                exp.getDescription().isEmpty() ? "No description" : 
-                (exp.getDescription().length() > 56 ? exp.getDescription().substring(0, 53) + "..." : exp.getDescription())));
+            String desc = exp.getDescription();
+            String descDisplay = (desc == null || desc.trim().isEmpty()) ? "No description" : 
+                (desc.length() > 56 ? desc.substring(0, 53) + "..." : desc);
+            report.append(String.format("│  📝 Description: %-56s │\n", descDisplay));
             report.append(String.format("│  📊 Type:        %-56s │\n", exp.isSplit() ? "Split Expense" : "Personal"));
             
             // Split details if present
             if (exp.isSplit() && exp.getSplitDetails() != null && !exp.getSplitDetails().isEmpty()) {
                 report.append("│  ├─ Split Details:                                                     │\n");
                 for (SplitDetail detail : exp.getSplitDetails()) {
-                    double percentage = (detail.getAmount() / exp.getAmount()) * 100;
+                    double percentage = exp.getAmount() > 0 ? (detail.getAmount() / exp.getAmount()) * 100.0 : 0.0;
                     report.append(String.format("│  │  👤 %-20s → $%-10.2f (%.1f%%)                      │\n",
                         detail.getPersonName(), detail.getAmount(), percentage));
                 }
@@ -141,9 +142,7 @@ public class PersonalReportGenerator implements ReportGenerator {
     
     @Override
     public boolean saveToFile(String filepath) {
-        if (reportContent == null) {
-            generate();
-        }
+        generate(); // Always regenerate fresh content before saving to disk
         
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filepath))) {
             writer.write(reportContent);

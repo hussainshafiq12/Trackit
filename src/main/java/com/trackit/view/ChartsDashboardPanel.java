@@ -114,8 +114,8 @@ public class ChartsDashboardPanel extends JPanel {
                 int legendY = 20;
                 
                 for (Map.Entry<String, Double> entry : categoryTotals.entrySet()) {
-                    double percentage = (entry.getValue() / total) * 100;
-                    double arcAngle = (entry.getValue() / total) * 360;
+                    double percentage = total > 0 ? (entry.getValue() / total) * 100.0 : 0.0;
+                    double arcAngle = total > 0 ? (entry.getValue() / total) * 360.0 : 0.0;
                     
                     Color color = colors[colorIndex % colors.length];
                     g2.setColor(color);

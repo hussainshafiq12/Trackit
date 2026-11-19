@@ -50,7 +50,10 @@ public class ReportFactory {
      */
     public static ReportGenerator createReport(String reportType, String identifier, 
                                               Object controller) {
-        switch (reportType.toUpperCase()) {
+        if (reportType == null || reportType.trim().isEmpty()) {
+            throw new IllegalArgumentException("Report type cannot be null or empty");
+        }
+        switch (reportType.trim().toUpperCase()) {
             case "PERSONAL":
                 if (controller instanceof ExpenseManager) {
                     return createPersonalReport(identifier, (ExpenseManager) controller);

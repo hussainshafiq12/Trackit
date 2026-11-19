@@ -18,6 +18,20 @@ class ReportFactoryTest {
     }
 
     @Test
+    @DisplayName("Should throw IllegalArgumentException when reportType is null or empty")
+    void testNullOrEmptyReportType() {
+        IllegalArgumentException thrownNull = assertThrows(IllegalArgumentException.class, () -> {
+            ReportFactory.createReport(null, "user123", new Object());
+        });
+        assertTrue(thrownNull.getMessage().contains("cannot be null or empty"));
+
+        IllegalArgumentException thrownEmpty = assertThrows(IllegalArgumentException.class, () -> {
+            ReportFactory.createReport("   ", "user123", new Object());
+        });
+        assertTrue(thrownEmpty.getMessage().contains("cannot be null or empty"));
+    }
+
+    @Test
     @DisplayName("Should throw IllegalArgumentException when controller type is invalid for personal report")
     void testInvalidControllerTypePersonal() {
         assertThrows(IllegalArgumentException.class, () -> {

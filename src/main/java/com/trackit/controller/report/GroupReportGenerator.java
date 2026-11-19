@@ -94,9 +94,9 @@ public class GroupReportGenerator implements ReportGenerator {
             report.append("Category: ").append(exp.getCategory()).append("\n");
             report.append("Amount: $").append(String.format("%.2f", exp.getTotalAmount())).append("\n");
             report.append("Paid By: ").append(exp.getPaidByUsername()).append("\n");
-            report.append("Description: ").append(
-                exp.getDescription().isEmpty() ? "N/A" : exp.getDescription()
-            ).append("\n");
+            String desc = exp.getDescription();
+            String descDisplay = (desc == null || desc.trim().isEmpty()) ? "N/A" : desc;
+            report.append("Description: ").append(descDisplay).append("\n");
             report.append("Split Type: ").append(exp.getSplitStrategyType()).append("\n");
             report.append("Participants: ").append(exp.getParticipantUserIds().size()).append("\n");
             report.append("─".repeat(60)).append("\n");
@@ -112,9 +112,7 @@ public class GroupReportGenerator implements ReportGenerator {
     
     @Override
     public boolean saveToFile(String filepath) {
-        if (reportContent == null) {
-            generate();
-        }
+        generate(); // Always regenerate to reflect the latest group expenses or balances
         
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filepath))) {
             writer.write(reportContent);

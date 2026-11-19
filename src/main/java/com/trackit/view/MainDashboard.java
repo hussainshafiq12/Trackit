@@ -13,6 +13,7 @@ import java.awt.event.ActionListener;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class MainDashboard extends JFrame {
     private static final long serialVersionUID = 1L;
@@ -409,7 +410,7 @@ public class MainDashboard extends JFrame {
         double amount = Double.parseDouble(amountStr.replace("$", ""));
         String desc = (String) tableModel.getValueAt(row, 2);
         return expenses.stream()
-            .filter(e -> e.getCategory().equals(category) && Math.abs(e.getAmount() - amount) < 0.01 && e.getDescription().equals(desc))
+            .filter(e -> Objects.equals(e.getCategory(), category) && Math.abs(e.getAmount() - amount) < 0.01 && Objects.equals(e.getDescription(), desc))
             .findFirst().orElse(null);
     }
 

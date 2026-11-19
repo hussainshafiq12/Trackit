@@ -375,9 +375,9 @@ public class PersonalPanel extends JPanel {
         double amount = Double.parseDouble(amountStr.replace("$", "").trim());
 
         return expenses.stream()
-            .filter(e -> e.getCategory().equals(category) &&
+            .filter(e -> Objects.equals(e.getCategory(), category) &&
                          Math.abs(e.getAmount() - amount) < 0.01 &&
-                         e.getDescription().equals(desc))
+                         Objects.equals(e.getDescription(), desc))
             .findFirst()
             .orElse(null);
     }
