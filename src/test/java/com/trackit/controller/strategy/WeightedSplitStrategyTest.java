@@ -1,5 +1,6 @@
 package com.trackit.controller.strategy;
 
+import com.trackit.exception.InvalidSplitException;
 import com.trackit.model.SplitDetail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,25 +36,52 @@ class WeightedSplitStrategyTest {
     }
 
     @Test
-    @DisplayName("Should throw exception when total weight is zero")
-    void testZeroWeightSum() {
+    @DisplayName("Should defensively throw InvalidSplitException on division-by-zero (total weight is zero)")
+    void testZeroWeightSumThrowsInvalidSplitException() {
         List<String> participants = Arrays.asList("Alice", "Bob");
         List<Double> zeroWeights = Arrays.asList(0.0, 0.0);
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        InvalidSplitException ex = assertThrows(InvalidSplitException.class, () -> {
             strategy.computeShares(100.0, participants, zeroWeights);
+        });
+        assertTrue(ex.getMessage().toLowerCase().contains("zero"));
+    }
+
+    @Test
+    @DisplayName("Should defensively throw InvalidSplitException when any weight is negative")
+    void testNegativeWeightThrowsInvalidSplitException() {
+        List<String> participants = Arrays.asList("Alice", "Bob");
+        List<Double> negativeWeights = Arrays.asList(-2.0, 5.0);
+
+        InvalidSplitException ex = assertThrows(InvalidSplitException.class, () -> {
+            strategy.computeShares(100.0, participants, negativeWeights);
+        });
+        assertTrue(ex.getMessage().toLowerCase().contains("negative"));
+    }
+
+    @Test
+    @DisplayName("Should throw InvalidSplitException when participant count and weights count mismatch")
+    void testMismatchCountThrowsInvalidSplitException() {
+        List<String> participants = Arrays.asList("Alice", "Bob", "Charlie");
+        List<Double> weights = Arrays.asList(1.0, 2.0);
+
+        assertThrows(InvalidSplitException.class, () -> {
+            strategy.computeShares(100.0, participants, weights);
         });
     }
 
     @Test
-    @DisplayName("Should throw exception when participant count and weights count mismatch")
-    void testMismatchCount() {
+    @DisplayName("Should split by proportional units (e.g. days stayed) with cent accuracy")
+    void testProportionalUnitsCentAccuracy() {
+        // e.g. Hotel stay: Alice 2 days, Bob 3 days, Charlie 5 days (total 10 days) on $333.33
         List<String> participants = Arrays.asList("Alice", "Bob", "Charlie");
-        List<Double> weights = Arrays.asList(1.0, 2.0);
+        List<Double> weights = Arrays.asList(2.0, 3.0, 5.0);
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            strategy.computeShares(100.0, participants, weights);
-        });
+        ArrayList<SplitDetail> result = strategy.computeShares(333.33, participants, weights);
+
+        assertEquals(3, result.size());
+        double sum = result.stream().mapToDouble(SplitDetail::getAmount).sum();
+        assertEquals(333.33, sum, 0.001, "Total allocated must match exactly $333.33");
     }
 
     @Test
