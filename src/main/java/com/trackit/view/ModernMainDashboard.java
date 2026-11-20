@@ -654,34 +654,50 @@ public class ModernMainDashboard extends JFrame {
     }
 
     private void exportReport() {
-        String[] options = {"Personal Report", "Cancel"};
+        String[] options = {"Personal Report (.txt)", "CSV Export (.csv)", "JSON Export (.json)", "Cancel"};
         int choice = JOptionPane.showOptionDialog(this,
-            "Select report type to export:",
-            "Export Report",
+            "Select report format to export asynchronously:",
+            "Export Financial Report (REQ-QA-01)",
             JOptionPane.DEFAULT_OPTION,
             JOptionPane.QUESTION_MESSAGE,
             null, options, options[0]);
         
-        if (choice == 0) {
-            ReportGenerator generator = ReportFactory.createPersonalReport(currentUser, expenseManager);
-            String report = generator.generate();
-            
-            String timestamp = java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String filename = "expense_report_" + timestamp + ".txt";
-            
-            if (generator.saveToFile(filename)) {
-                UITheme.showMessage(this,
-                    "✓ Report exported successfully!\nSaved to: " + filename,
-                    "Export Success",
-                    JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                UITheme.showMessage(this,
-                    "Failed to export report",
-                    "Export Error",
-                    JOptionPane.ERROR_MESSAGE);
-            }
+        if (choice < 0 || choice >= 3) {
+            return;
         }
+
+        String timestamp = java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss"));
+        ReportGenerator generator;
+        String filename;
+
+        if (choice == 0) {
+            generator = ReportFactory.createPersonalReport(currentUser, expenseManager);
+            filename = "expense_report_" + timestamp + ".txt";
+        } else if (choice == 1) {
+            generator = ReportFactory.createCsvReport(currentUser, allExpenses);
+            filename = "expense_export_" + timestamp + ".csv";
+        } else {
+            generator = ReportFactory.createJsonReport(currentUser, allExpenses);
+            filename = "expense_export_" + timestamp + ".json";
+        }
+
+        // Execute export asynchronously without blocking Swing UI thread (REQ-QA-01)
+        generator.saveToFileAsync(filename).thenAccept(success -> {
+            SwingUtilities.invokeLater(() -> {
+                if (success) {
+                    UITheme.showMessage(this,
+                        "✓ " + generator.getReportType() + " Report exported asynchronously!\nSaved to: " + filename,
+                        "Export Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    UITheme.showMessage(this,
+                        "Failed to export " + generator.getReportType() + " report",
+                        "Export Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            });
+        });
     }
 
     private void logout() {

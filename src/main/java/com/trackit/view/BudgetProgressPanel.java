@@ -170,6 +170,37 @@ public class BudgetProgressPanel extends JPanel {
         return container;
     }
     
+    public static String determineAlertStatus(double percentage) {
+        if (percentage >= 100.0) {
+            return "EXCEEDED";
+        } else if (percentage >= 80.0) {
+            return "WARNING";
+        }
+        return "NORMAL";
+    }
+
+    public static Color determineAlertColor(double percentage) {
+        String status = determineAlertStatus(percentage);
+        switch (status) {
+            case "EXCEEDED":
+                return UITheme.DANGER;
+            case "WARNING":
+                return new Color(255, 159, 10); // Orange
+            default:
+                return UITheme.SUCCESS;
+        }
+    }
+
+    public static String formatAlertWarning(double percentage, String category) {
+        String cat = (category != null && !category.trim().isEmpty()) ? category : "Overall";
+        if (percentage >= 100.0) {
+            return String.format(java.util.Locale.US, "⚠ %s budget exceeded by %.1f%%!", cat, percentage - 100.0);
+        } else if (percentage >= 80.0) {
+            return String.format(java.util.Locale.US, "⚠ %s budget warning: %.1f%% spent", cat, percentage);
+        }
+        return "OK";
+    }
+
     private Color getColorForAlert(String alertLevel) {
         switch (alertLevel) {
             case "EXCEEDED":
