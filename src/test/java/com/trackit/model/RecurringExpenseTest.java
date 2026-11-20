@@ -94,4 +94,20 @@ class RecurringExpenseTest {
                     RecurringExpense.RecurrenceType.CUSTOM, -5, start);
         });
     }
+
+    @Test
+    @DisplayName("Should generate distinct unique IDs for same-day and same-category recurring expenses")
+    void testUniqueIdGenerationForSameDayAndCategory() {
+        LocalDate start = LocalDate.of(2026, 3, 10);
+        RecurringExpense exp1 = new RecurringExpense(
+                "shafiq", "FOOD", 20.0, "Lunch",
+                RecurringExpense.RecurrenceType.WEEKLY, 0, start
+        );
+        RecurringExpense exp2 = new RecurringExpense(
+                "shafiq", "FOOD", 20.0, "Dinner",
+                RecurringExpense.RecurrenceType.WEEKLY, 0, start
+        );
+
+        assertNotEquals(exp1.getId(), exp2.getId(), "Expenses created on the same day must have distinct unique IDs");
+    }
 }

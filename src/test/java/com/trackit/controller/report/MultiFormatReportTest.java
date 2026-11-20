@@ -63,4 +63,40 @@ class MultiFormatReportTest {
         ReportGenerator jsonGen = ReportFactory.createReport("JSON", "shafiq", expenses);
         assertEquals("JSON", jsonGen.getReportType());
     }
+
+    @Test
+    @DisplayName("Should sanitize multiline descriptions in CSV export into a single row")
+    void testCsvReportHandlesMultilineDescription() {
+        ArrayList<Expense> expenses = new ArrayList<>();
+        expenses.add(new Expense("FOOD", 25.0, "Line1\nLine2\r\nLine3", LocalDate.of(2026, 3, 5), "shafiq"));
+        ReportGenerator generator = ReportFactory.createCsvReport("shafiq", expenses);
+        String content = generator.generate();
+
+        assertFalse(content.contains("Line1\nLine2"));
+        assertFalse(content.contains("\r"));
+        assertTrue(content.contains("\"Line1 Line2 Line3\""));
+    }
+
+    @Test
+    @DisplayName("Should safely handle null category and null date in JSON export")
+    void testJsonReportHandlesNullCategoryAndDate() {
+        ArrayList<Expense> expenses = new ArrayList<>();
+        Expense expWithNulls = new Expense("FOOD", 12.0, "Misc item", LocalDate.of(2026, 3, 1), "shafiq") {
+            @Override
+            public String getCategory() {
+                return null;
+            }
+            @Override
+            public LocalDate getDate() {
+                return null;
+            }
+        };
+        expenses.add(expWithNulls);
+        ReportGenerator generator = ReportFactory.createJsonReport("shafiq", expenses);
+        String content = generator.generate();
+
+        assertNotNull(content);
+        assertTrue(content.contains("\"category\": \"UNCATEGORIZED\""));
+        assertTrue(content.contains("\"date\": \"\""));
+    }
 }

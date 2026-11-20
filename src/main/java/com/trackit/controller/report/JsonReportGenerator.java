@@ -37,11 +37,13 @@ public class JsonReportGenerator implements ReportGenerator {
         
         for (int i = 0; i < expenses.size(); i++) {
             Expense e = expenses.get(i);
+            String category = e.getCategory() != null ? e.getCategory() : "UNCATEGORIZED";
+            String dateStr = e.getDate() != null ? e.getDate().toString() : "";
             sb.append("    {\n");
-            sb.append("      \"category\": \"").append(escapeJson(e.getCategory())).append("\",\n");
+            sb.append("      \"category\": \"").append(escapeJson(category)).append("\",\n");
             sb.append(String.format(Locale.US, "      \"amount\": %.2f,\n", e.getAmount()));
             sb.append("      \"description\": \"").append(escapeJson(e.getDescription())).append("\",\n");
-            sb.append("      \"date\": \"").append(e.getDate()).append("\"\n");
+            sb.append("      \"date\": \"").append(escapeJson(dateStr)).append("\"\n");
             sb.append("    }").append(i < expenses.size() - 1 ? "," : "").append("\n");
         }
         sb.append("  ]\n");

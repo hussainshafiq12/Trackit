@@ -80,7 +80,7 @@ public class RecurringExpense implements Serializable {
     }
     
     private int generateId() {
-        return (username + category + startDate.toString()).hashCode();
+        return (username + category + startDate.toString() + description + amount + java.util.UUID.randomUUID().toString()).hashCode();
     }
     
     /**

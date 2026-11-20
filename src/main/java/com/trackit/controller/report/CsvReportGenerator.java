@@ -32,7 +32,14 @@ public class CsvReportGenerator implements ReportGenerator {
         StringBuilder sb = new StringBuilder(Math.max(256, expenses.size() * 64));
         sb.append("Date,Category,Description,Amount,User\n");
         for (Expense e : expenses) {
-            String desc = e.getDescription() != null ? e.getDescription().replace("\"", "\"\"") : "";
+            String desc = "";
+            if (e.getDescription() != null) {
+                desc = e.getDescription()
+                        .replace("\r\n", " ")
+                        .replace("\n", " ")
+                        .replace("\r", " ")
+                        .replace("\"", "\"\"");
+            }
             sb.append(e.getDate()).append(",")
               .append(e.getCategory()).append(",")
               .append("\"").append(desc).append("\",")
