@@ -1,11 +1,14 @@
 package com.trackit.model;
 
+import com.trackit.exception.ValidationException;
+
 import java.io.Serializable;
 import java.time.LocalDate;
 
 /**
- * RecurringExpense - Model for expenses that repeat automatically
- * Supports weekly, monthly, and custom interval recurrence
+ * RecurringExpense - Model for expenses that repeat automatically.
+ * Supports weekly, monthly, and custom interval recurrence.
+ * Defensively validates inputs and calculates future cadence.
  */
 public class RecurringExpense implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -40,16 +43,40 @@ public class RecurringExpense implements Serializable {
     public RecurringExpense(String username, String category, double amount, 
                            String description, RecurrenceType recurrenceType, 
                            int customDays, LocalDate startDate) {
-        this.username = username;
-        this.category = category;
+        validateInputs(username, category, amount, recurrenceType, customDays, startDate);
+        
+        this.username = username.trim();
+        this.category = category.trim();
         this.amount = amount;
-        this.description = description;
+        this.description = description != null ? description.trim() : "";
         this.recurrenceType = recurrenceType;
         this.customDays = customDays;
         this.startDate = startDate;
         this.lastGenerated = startDate;
         this.active = true;
         this.id = generateId();
+    }
+    
+    private void validateInputs(String username, String category, double amount, 
+                                RecurrenceType recurrenceType, int customDays, LocalDate startDate) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new ValidationException("Username cannot be empty");
+        }
+        if (category == null || category.trim().isEmpty()) {
+            throw new ValidationException("Category cannot be empty");
+        }
+        if (amount <= 0) {
+            throw new ValidationException("Recurring expense amount must be greater than zero");
+        }
+        if (recurrenceType == null) {
+            throw new ValidationException("Recurrence type cannot be null");
+        }
+        if (recurrenceType == RecurrenceType.CUSTOM && customDays <= 0) {
+            throw new ValidationException("Custom recurrence requires customDays > 0");
+        }
+        if (startDate == null) {
+            throw new ValidationException("Start date cannot be null");
+        }
     }
     
     private int generateId() {
@@ -86,8 +113,7 @@ public class RecurringExpense implements Serializable {
      * Create expense instance from this recurring template
      */
     public Expense createExpenseInstance(LocalDate date) {
-        Expense expense = new Expense(category, amount, description, date, username);
-        return expense;
+        return new Expense(category, amount, description, date, username);
     }
     
     // Getters and Setters
@@ -104,7 +130,10 @@ public class RecurringExpense implements Serializable {
     }
     
     public void setCategory(String category) {
-        this.category = category;
+        if (category == null || category.trim().isEmpty()) {
+            throw new ValidationException("Category cannot be empty");
+        }
+        this.category = category.trim();
     }
     
     public double getAmount() {
@@ -112,6 +141,9 @@ public class RecurringExpense implements Serializable {
     }
     
     public void setAmount(double amount) {
+        if (amount <= 0) {
+            throw new ValidationException("Amount must be greater than zero");
+        }
         this.amount = amount;
     }
     
@@ -120,7 +152,7 @@ public class RecurringExpense implements Serializable {
     }
     
     public void setDescription(String description) {
-        this.description = description;
+        this.description = description != null ? description.trim() : "";
     }
     
     public RecurrenceType getRecurrenceType() {
@@ -128,6 +160,9 @@ public class RecurringExpense implements Serializable {
     }
     
     public void setRecurrenceType(RecurrenceType recurrenceType) {
+        if (recurrenceType == null) {
+            throw new ValidationException("Recurrence type cannot be null");
+        }
         this.recurrenceType = recurrenceType;
     }
     
@@ -136,6 +171,9 @@ public class RecurringExpense implements Serializable {
     }
     
     public void setCustomDays(int customDays) {
+        if (recurrenceType == RecurrenceType.CUSTOM && customDays <= 0) {
+            throw new ValidationException("Custom recurrence requires customDays > 0");
+        }
         this.customDays = customDays;
     }
     
