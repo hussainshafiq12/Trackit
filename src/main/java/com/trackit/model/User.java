@@ -23,7 +23,7 @@ public class User implements Serializable {
     private LocalDateTime registeredDate;
 
     public User(String username, String passwordHash, String email) {
-        this(username, passwordHash, email, generateSalt());
+        this(username, passwordHash, email, null);
     }
 
     public User(String username, String passwordHash, String email, String salt) {
@@ -36,7 +36,7 @@ public class User implements Serializable {
         this.username = username.trim();
         this.passwordHash = passwordHash;
         this.email = email.trim();
-        this.salt = (salt != null && !salt.trim().isEmpty()) ? salt.trim() : generateSalt();
+        this.salt = (salt != null && !salt.trim().isEmpty()) ? salt.trim() : null;
         this.registeredDate = LocalDateTime.now();
     }
 
@@ -71,18 +71,30 @@ public class User implements Serializable {
     }
 
     /**
-     * Backward-compatible hashing using default salt.
+     * Standard SHA-256 password hashing.
      */
     public static String hashPassword(String password) {
-        return hashPasswordWithSalt(password, "STATIC_TRACKIT_SALT");
+        if (password == null || password.length() < 6) {
+            throw new ValidationException("Password must be at least 6 characters");
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedHash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(encodedHash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
     }
 
     public boolean verifyPassword(String rawPassword) {
         if (rawPassword == null || passwordHash == null) {
             return false;
         }
-        String computedHash = hashPasswordWithSalt(rawPassword, this.salt != null ? this.salt : "STATIC_TRACKIT_SALT");
-        return this.passwordHash.equals(computedHash);
+        if (this.salt != null && !this.salt.trim().isEmpty()) {
+            return this.passwordHash.equals(hashPasswordWithSalt(rawPassword, this.salt));
+        } else {
+            return this.passwordHash.equals(hashPassword(rawPassword));
+        }
     }
 
     private static String bytesToHex(byte[] bytes) {
