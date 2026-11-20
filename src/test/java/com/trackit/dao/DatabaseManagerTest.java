@@ -32,6 +32,14 @@ class DatabaseManagerTest {
     }
 
     @Test
+    @DisplayName("Should reject malicious keys attempting directory traversal")
+    void testPreventDirectoryTraversalKeys() {
+        assertThrows(IllegalArgumentException.class, () -> dbManager.saveData("../malicious", "exploit"));
+        assertThrows(IllegalArgumentException.class, () -> dbManager.saveData("sub/folder/key", "data"));
+        assertThrows(IllegalArgumentException.class, () -> dbManager.loadData("..\\windows_traversal", String.class));
+    }
+
+    @Test
     @DisplayName("Should maintain Singleton invariant across multiple concurrent threads")
     void testSingletonInstanceAcrossConcurrentThreads() throws InterruptedException, ExecutionException {
         final int THREADS = 16;
