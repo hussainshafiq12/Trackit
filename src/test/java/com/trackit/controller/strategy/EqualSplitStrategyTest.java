@@ -1,5 +1,6 @@
 package com.trackit.controller.strategy;
 
+import com.trackit.exception.InvalidSplitException;
 import com.trackit.model.SplitDetail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -87,6 +88,15 @@ class EqualSplitStrategyTest {
         assertEquals(1, result.size());
         assertEquals("Alice", result.get(0).getPersonName());
         assertEquals(150.50, result.get(0).getAmount(), 0.001);
+    }
+
+    @Test
+    @DisplayName("Should throw InvalidSplitException when expense amount is negative")
+    void testNegativeAmountThrowsInvalidSplitException() {
+        List<String> participants = Arrays.asList("Alice", "Bob");
+        assertThrows(InvalidSplitException.class, () -> {
+            strategy.computeShares(-50.0, participants, null);
+        });
     }
 
     @Test

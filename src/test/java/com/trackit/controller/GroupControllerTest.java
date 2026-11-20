@@ -74,6 +74,48 @@ class GroupControllerTest {
         assertEquals(1, expenses.size());
         assertEquals(90.0, expenses.get(0).getTotalAmount(), 0.001);
         assertEquals("EQUAL", expenses.get(0).getSplitStrategyType());
+        assertNotNull(expenses.get(0).getSplitDetails());
+        assertEquals(3, expenses.get(0).getSplitDetails().size());
+    }
+
+    @Test
+    @DisplayName("Should calculate group balances safely for Percentage splits without null weight errors")
+    void testCalculateGroupBalancesWithPercentageSplit() {
+        groupController.createGroup(TEST_GROUP, CREATOR);
+        groupController.addMemberToGroup(TEST_GROUP, "shafiq");
+
+        List<String> participants = Arrays.asList(CREATOR, "shafiq");
+        List<Double> percentages = Arrays.asList(60.0, 40.0);
+
+        // Niaz pays $100 total. Niaz share = $60, Shafiq share = $40
+        groupController.addSharedExpense("TRAVEL", 100.0, "Train tickets", CREATOR, TEST_GROUP, 
+                                         "PERCENTAGE", participants, percentages);
+
+        Map<String, Double> balances = groupController.calculateGroupBalances(TEST_GROUP);
+        // Niaz paid 100, owes 60 -> net +40.0
+        // Shafiq paid 0, owes 40 -> net -40.0
+        assertEquals(40.0, balances.get(CREATOR), 0.01);
+        assertEquals(-40.0, balances.get("shafiq"), 0.01);
+    }
+
+    @Test
+    @DisplayName("Should calculate group balances safely for Weighted splits without null weight errors")
+    void testCalculateGroupBalancesWithWeightedSplit() {
+        groupController.createGroup(TEST_GROUP, CREATOR);
+        groupController.addMemberToGroup(TEST_GROUP, "shafiq");
+
+        List<String> participants = Arrays.asList(CREATOR, "shafiq");
+        List<Double> weights = Arrays.asList(3.0, 1.0); // 3:1 ratio (75% and 25%)
+
+        // Niaz pays $200 total. Niaz share = $150, Shafiq share = $50
+        groupController.addSharedExpense("LODGING", 200.0, "Hotel room", CREATOR, TEST_GROUP, 
+                                         "WEIGHTED", participants, weights);
+
+        Map<String, Double> balances = groupController.calculateGroupBalances(TEST_GROUP);
+        // Niaz paid 200, owes 150 -> net +50.0
+        // Shafiq paid 0, owes 50 -> net -50.0
+        assertEquals(50.0, balances.get(CREATOR), 0.01);
+        assertEquals(-50.0, balances.get("shafiq"), 0.01);
     }
 
     @Test

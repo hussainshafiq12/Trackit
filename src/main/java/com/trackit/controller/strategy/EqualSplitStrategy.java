@@ -1,5 +1,6 @@
 package com.trackit.controller.strategy;
 
+import com.trackit.exception.InvalidSplitException;
 import com.trackit.model.SplitDetail;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +26,11 @@ public class EqualSplitStrategy implements SplitStrategy {
             return splits;
         }
 
-        if (totalAmount <= 0) {
+        if (totalAmount < 0) {
+            throw new InvalidSplitException("Expense amount cannot be negative: " + totalAmount);
+        }
+
+        if (totalAmount == 0.0) {
             for (String participant : participants) {
                 splits.add(new SplitDetail(participant, 0.0));
             }

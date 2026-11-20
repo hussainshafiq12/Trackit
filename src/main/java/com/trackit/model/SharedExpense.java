@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * SharedExpense Model - Represents group shared expense
+ * SharedExpense Model - Represents group shared expense.
+ * Stores participant list, split strategy type, custom weights, and computed split details.
  */
 public class SharedExpense implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -19,6 +20,8 @@ public class SharedExpense implements Serializable {
     private String groupName;
     private List<String> participantUserIds;
     private String splitStrategyType;
+    private ArrayList<SplitDetail> splitDetails;
+    private List<Double> weights;
 
     public SharedExpense(String category, double totalAmount, String description, 
                         LocalDate date, String paidByUsername, String groupName) {
@@ -30,6 +33,8 @@ public class SharedExpense implements Serializable {
         this.groupName = groupName;
         this.participantUserIds = new ArrayList<>();
         this.splitStrategyType = "EQUAL";
+        this.splitDetails = new ArrayList<>();
+        this.weights = new ArrayList<>();
     }
 
     // Getters and Setters
@@ -82,11 +87,11 @@ public class SharedExpense implements Serializable {
     }
 
     public List<String> getParticipantUserIds() {
-        return participantUserIds;
+        return participantUserIds != null ? new ArrayList<>(participantUserIds) : new ArrayList<>();
     }
 
     public void setParticipantUserIds(List<String> participantUserIds) {
-        this.participantUserIds = participantUserIds;
+        this.participantUserIds = participantUserIds != null ? new ArrayList<>(participantUserIds) : new ArrayList<>();
     }
 
     public String getSplitStrategyType() {
@@ -95,5 +100,21 @@ public class SharedExpense implements Serializable {
 
     public void setSplitStrategyType(String splitStrategyType) {
         this.splitStrategyType = splitStrategyType;
+    }
+
+    public ArrayList<SplitDetail> getSplitDetails() {
+        return splitDetails != null ? new ArrayList<>(splitDetails) : new ArrayList<>();
+    }
+
+    public void setSplitDetails(List<SplitDetail> splitDetails) {
+        this.splitDetails = splitDetails != null ? new ArrayList<>(splitDetails) : new ArrayList<>();
+    }
+
+    public List<Double> getWeights() {
+        return weights != null ? new ArrayList<>(weights) : new ArrayList<>();
+    }
+
+    public void setWeights(List<Double> weights) {
+        this.weights = weights != null ? new ArrayList<>(weights) : new ArrayList<>();
     }
 }

@@ -32,6 +32,10 @@ public class PercentageSplitStrategy implements SplitStrategy {
             throw new InvalidSplitException("Participants and percentages must match in size");
         }
         
+        if (totalAmount < 0) {
+            throw new InvalidSplitException("Expense amount cannot be negative: " + totalAmount);
+        }
+        
         // Defensively check for negative percentages
         for (double p : percentages) {
             if (p < 0) {
@@ -48,32 +52,30 @@ public class PercentageSplitStrategy implements SplitStrategy {
             throw new InvalidSplitException("Percentages must sum to 100%. Current sum: " + totalPercentage);
         }
 
-        if (totalAmount <= 0) {
+        if (totalAmount == 0.0) {
             for (String participant : participants) {
                 splits.add(new SplitDetail(participant, 0.0));
             }
             return splits;
         }
         
-        // Calculate shares with cent-level accuracy to prevent drift
+        // Calculate shares with cent-level accuracy
         long totalCents = Math.round(totalAmount * 100.0);
-        long allocatedCents = 0;
         int size = participants.size();
         
         for (int i = 0; i < size; i++) {
             String participant = participants.get(i);
             double percentage = percentages.get(i);
-            
-            long shareCents;
-            if (i == size - 1) {
-                // Last participant absorbs any fractional cent rounding remainder
-                shareCents = totalCents - allocatedCents;
-            } else {
-                shareCents = Math.round((percentage / 100.0) * totalCents);
-                allocatedCents += shareCents;
-            }
-            
+            long shareCents = Math.round((percentage / 100.0) * totalCents);
             splits.add(new SplitDetail(participant, shareCents / 100.0));
+        }
+        
+        // Allocate any fractional cent rounding difference to the first person (payer) for consistency with EqualSplitStrategy
+        long sumCents = splits.stream().mapToLong(s -> Math.round(s.getAmount() * 100.0)).sum();
+        long diffCents = totalCents - sumCents;
+        if (diffCents != 0 && !splits.isEmpty()) {
+            SplitDetail first = splits.get(0);
+            splits.set(0, new SplitDetail(first.getPersonName(), (Math.round(first.getAmount() * 100.0) + diffCents) / 100.0));
         }
         
         return splits;

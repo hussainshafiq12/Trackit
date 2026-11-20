@@ -31,23 +31,26 @@ class SettlementOptimizerTest {
     }
 
     @Test
-    @DisplayName("Should compute net member balances (Paid - Owed) accurately")
+    @DisplayName("Should compute net member balances (Paid - Owed) accurately and null-safely")
     void testComputeNetBalances() {
         Map<String, Double> paid = new HashMap<>();
         paid.put("Alice", 100.0);
         paid.put("Bob", 50.0);
         paid.put("Charlie", 0.0);
+        paid.put("David", null); // Safe null value check
 
         Map<String, Double> owed = new HashMap<>();
         owed.put("Alice", 50.0);
         owed.put("Bob", 50.0);
         owed.put("Charlie", 50.0);
+        owed.put("David", 20.0);
 
         Map<String, Double> net = SettlementOptimizer.computeNetBalances(paid, owed);
 
         assertEquals(50.0, net.get("Alice"), 0.001); // 100 - 50 = +50
         assertEquals(0.0, net.get("Bob"), 0.001);    // 50 - 50 = 0
         assertEquals(-50.0, net.get("Charlie"), 0.001); // 0 - 50 = -50
+        assertEquals(-20.0, net.get("David"), 0.001);   // 0 - 20 = -20
     }
 
     @Test

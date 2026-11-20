@@ -153,6 +153,10 @@ public class GroupController {
                                                  LocalDate.now(), paidBy.trim(), groupName.trim());
         expense.setParticipantUserIds(new ArrayList<>(participants));
         expense.setSplitStrategyType(strategy.getStrategyType());
+        expense.setSplitDetails(splitDetails);
+        if (weights != null) {
+            expense.setWeights(new ArrayList<>(weights));
+        }
         
         groupDAO.addSharedExpense(expense);
     }
@@ -164,6 +168,7 @@ public class GroupController {
     
     /**
      * Computes net member balances for all participants across group shared expenses.
+     * Uses persisted SplitDetails from SharedExpense, safely avoiding null weights errors.
      * Positive = owed money; Negative = owes money.
      */
     public Map<String, Double> calculateGroupBalances(String groupName) {
@@ -183,8 +188,13 @@ public class GroupController {
             double totalAmount = expense.getTotalAmount();
             List<String> participants = expense.getParticipantUserIds();
             
-            SplitStrategy strategy = getStrategy(expense.getSplitStrategyType());
-            ArrayList<SplitDetail> shares = strategy.computeShares(totalAmount, participants, null);
+            // Prefer the stored split details; fallback to computing with stored weights if needed
+            ArrayList<SplitDetail> shares = expense.getSplitDetails();
+            if (shares == null || shares.isEmpty()) {
+                SplitStrategy strategy = getStrategy(expense.getSplitStrategyType());
+                List<Double> weights = expense.getWeights();
+                shares = strategy.computeShares(totalAmount, participants, (weights != null && !weights.isEmpty()) ? weights : null);
+            }
             
             balances.put(paidBy, balances.getOrDefault(paidBy, 0.0) + totalAmount);
             

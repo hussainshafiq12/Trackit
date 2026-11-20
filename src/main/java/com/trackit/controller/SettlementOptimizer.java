@@ -8,7 +8,7 @@ import java.util.*;
  * needed to settle complex group balances.
  * 
  * Algorithm: Min-Cash-Flow Greedy Algorithm
- * 1. Computes net member balances (Paid - Owed)
+ * 1. Computes net member balances (Paid - Owed) with safe null handling
  * 2. Recursively settles maximum debtors against maximum creditors
  * 3. Reduces complex N-person debt networks to at most N-1 transactions
  */
@@ -38,6 +38,7 @@ public class SettlementOptimizer {
     
     /**
      * Computes net member balances: Paid - Owed.
+     * Includes null-safety checks to prevent NullPointerException when map values are null.
      * Positive balance indicates the member is owed money (creditor).
      * Negative balance indicates the member owes money (debtor).
      */
@@ -48,8 +49,11 @@ public class SettlementOptimizer {
         if (owed != null) allMembers.addAll(owed.keySet());
         
         for (String member : allMembers) {
-            double amountPaid = (paid != null) ? paid.getOrDefault(member, 0.0) : 0.0;
-            double amountOwed = (owed != null) ? owed.getOrDefault(member, 0.0) : 0.0;
+            Double pVal = (paid != null) ? paid.get(member) : null;
+            double amountPaid = (pVal != null) ? pVal : 0.0;
+            Double oVal = (owed != null) ? owed.get(member) : null;
+            double amountOwed = (oVal != null) ? oVal : 0.0;
+            
             double net = Math.round((amountPaid - amountOwed) * 100.0) / 100.0;
             netBalances.put(member, net);
         }
@@ -70,9 +74,12 @@ public class SettlementOptimizer {
         // Filter out zero balances and maintain cent precision
         Map<String, Double> workingBalances = new HashMap<>();
         for (Map.Entry<String, Double> entry : balances.entrySet()) {
-            double val = Math.round(entry.getValue() * 100.0) / 100.0;
-            if (Math.abs(val) > EPSILON) {
-                workingBalances.put(entry.getKey(), val);
+            Double valObj = entry.getValue();
+            if (valObj != null) {
+                double val = Math.round(valObj * 100.0) / 100.0;
+                if (Math.abs(val) > EPSILON) {
+                    workingBalances.put(entry.getKey(), val);
+                }
             }
         }
         
@@ -151,8 +158,8 @@ public class SettlementOptimizer {
         
         List<Transaction> optimized = optimizeSettlement(balances);
         
-        long debtors = balances.values().stream().filter(b -> b < -EPSILON).count();
-        long creditors = balances.values().stream().filter(b -> b > EPSILON).count();
+        long debtors = balances.values().stream().filter(b -> b != null && b < -EPSILON).count();
+        long creditors = balances.values().stream().filter(b -> b != null && b > EPSILON).count();
         int directTransactions = (int) (debtors * creditors);
         int optimizedTransactions = optimized.size();
         int saved = Math.max(0, directTransactions - optimizedTransactions);
