@@ -165,9 +165,10 @@ public class DatabaseManager {
     
     /**
      * Check if data exists in cache or on disk using readLock.
+     * Safely returns false if key is null or empty.
      */
     public boolean dataExists(String key) {
-        if (key == null) return false;
+        if (key == null || key.trim().isEmpty()) return false;
         validateStorageKey(key);
         readLock.lock();
         try {
@@ -179,9 +180,10 @@ public class DatabaseManager {
     
     /**
      * Delete data from cache and disk using writeLock.
+     * Safely returns if key is null or empty.
      */
     public void deleteData(String key) {
-        if (key == null) return;
+        if (key == null || key.trim().isEmpty()) return;
         validateStorageKey(key);
         writeLock.lock();
         try {
