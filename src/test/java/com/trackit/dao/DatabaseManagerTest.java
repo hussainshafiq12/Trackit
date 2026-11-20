@@ -32,6 +32,30 @@ class DatabaseManagerTest {
     }
 
     @Test
+    @DisplayName("Should reject malicious keys attempting directory traversal")
+    void testPreventDirectoryTraversalKeys() {
+        assertThrows(IllegalArgumentException.class, () -> dbManager.saveData("../malicious", "exploit"));
+        assertThrows(IllegalArgumentException.class, () -> dbManager.saveData("sub/folder/key", "data"));
+        assertThrows(IllegalArgumentException.class, () -> dbManager.loadData("..\\windows_traversal", String.class));
+    }
+
+    @Test
+    @DisplayName("Should safely handle null and empty keys in dataExists and deleteData")
+    void testNullAndEmptyKeyHandling() {
+        assertFalse(dbManager.dataExists(null));
+        assertFalse(dbManager.dataExists(""));
+        assertFalse(dbManager.dataExists("   "));
+
+        assertDoesNotThrow(() -> dbManager.deleteData(null));
+        assertDoesNotThrow(() -> dbManager.deleteData(""));
+        assertDoesNotThrow(() -> dbManager.deleteData("   "));
+
+        assertNull(dbManager.loadData(null, String.class));
+        assertNull(dbManager.loadData("", String.class));
+        assertNull(dbManager.loadData("   ", String.class));
+    }
+
+    @Test
     @DisplayName("Should maintain Singleton invariant across multiple concurrent threads")
     void testSingletonInstanceAcrossConcurrentThreads() throws InterruptedException, ExecutionException {
         final int THREADS = 16;

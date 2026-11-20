@@ -47,7 +47,11 @@ public class WeightedSplitStrategy implements SplitStrategy {
             throw new InvalidSplitException("Total weight cannot be zero (division-by-zero prevention)");
         }
 
-        if (totalAmount <= 0) {
+        if (totalAmount < 0) {
+            throw new InvalidSplitException("Expense amount cannot be negative: " + totalAmount);
+        }
+
+        if (totalAmount == 0.0) {
             for (String participant : participants) {
                 splits.add(new SplitDetail(participant, 0.0));
             }

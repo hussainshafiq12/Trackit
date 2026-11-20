@@ -56,13 +56,24 @@ public class DatabaseManager {
     }
     
     /**
+     * Sanitizes and validates persistence storage keys to prevent path traversal
+     * vulnerabilities and ensure data isolation strictly within the data/ directory.
+     */
+    private void validateStorageKey(String key) {
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Key cannot be null or empty");
+        }
+        if (key.contains("..") || key.contains("/") || key.contains("\\")) {
+            throw new IllegalArgumentException("Security exception: Key contains invalid path traversal characters: " + key);
+        }
+    }
+    
+    /**
      * Thread-safe save operation guarded by mutual-exclusion writeLock.
      * Writes atomically to temporary file before rename to prevent corruption.
      */
     public void saveData(String key, Object data) {
-        if (key == null || key.trim().isEmpty()) {
-            throw new IllegalArgumentException("Key cannot be null or empty");
-        }
+        validateStorageKey(key);
         writeLock.lock();
         try {
             cache.put(key, data);
@@ -81,6 +92,7 @@ public class DatabaseManager {
         if (key == null || key.trim().isEmpty()) {
             return null;
         }
+        validateStorageKey(key);
         
         readLock.lock();
         try {
@@ -153,9 +165,11 @@ public class DatabaseManager {
     
     /**
      * Check if data exists in cache or on disk using readLock.
+     * Safely returns false if key is null or empty.
      */
     public boolean dataExists(String key) {
-        if (key == null) return false;
+        if (key == null || key.trim().isEmpty()) return false;
+        validateStorageKey(key);
         readLock.lock();
         try {
             return cache.containsKey(key) || new File(DATA_DIR + key + ".dat").exists();
@@ -166,9 +180,11 @@ public class DatabaseManager {
     
     /**
      * Delete data from cache and disk using writeLock.
+     * Safely returns if key is null or empty.
      */
     public void deleteData(String key) {
-        if (key == null) return;
+        if (key == null || key.trim().isEmpty()) return;
+        validateStorageKey(key);
         writeLock.lock();
         try {
             cache.remove(key);

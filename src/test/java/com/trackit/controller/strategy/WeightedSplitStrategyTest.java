@@ -85,6 +85,18 @@ class WeightedSplitStrategyTest {
     }
 
     @Test
+    @DisplayName("Should throw InvalidSplitException on negative total amount")
+    void testNegativeAmountThrowsInvalidSplitException() {
+        List<String> participants = Arrays.asList("Alice", "Bob");
+        List<Double> weights = Arrays.asList(1.0, 1.0);
+
+        InvalidSplitException ex = assertThrows(InvalidSplitException.class, () -> {
+            strategy.computeShares(-50.0, participants, weights);
+        });
+        assertTrue(ex.getMessage().contains("negative"));
+    }
+
+    @Test
     @DisplayName("Strategy type should be WEIGHTED")
     void testStrategyType() {
         assertEquals("WEIGHTED", strategy.getStrategyType());
