@@ -3,19 +3,21 @@ package com.trackit.controller;
 import java.util.*;
 
 /**
- * SettlementOptimizer - Implements minimal transaction settlement algorithm
- * Uses greedy approach to minimize number of transactions needed to settle group balances
+ * SettlementOptimizer - Implements minimal transaction settlement algorithm.
+ * Uses a recursive greedy Min-Cash-Flow approach to minimize the number of transactions
+ * needed to settle complex group balances.
  * 
- * Algorithm: Min-Cash-Flow
- * 1. Calculate net balance for each person
- * 2. Find person with max credit and max debit
- * 3. Settle between them
- * 4. Repeat until all settled
+ * Algorithm: Min-Cash-Flow Greedy Algorithm
+ * 1. Computes net member balances (Paid - Owed) with safe null handling
+ * 2. Recursively settles maximum debtors against maximum creditors
+ * 3. Reduces complex N-person debt networks to at most N-1 transactions
  */
 public class SettlementOptimizer {
     
+    private static final double EPSILON = 0.009; // Cent-level threshold
+    
     /**
-     * Transaction represents a payment from one person to another
+     * Transaction represents a payment from debtor to creditor.
      */
     public static class Transaction {
         public final String from;
@@ -25,7 +27,7 @@ public class SettlementOptimizer {
         public Transaction(String from, String to, double amount) {
             this.from = from;
             this.to = to;
-            this.amount = amount;
+            this.amount = Math.round(amount * 100.0) / 100.0;
         }
         
         @Override
@@ -35,101 +37,138 @@ public class SettlementOptimizer {
     }
     
     /**
-     * Optimize settlement transactions to minimize number of payments
+     * Computes net member balances: Paid - Owed.
+     * Includes null-safety checks to prevent NullPointerException when map values are null.
+     * Positive balance indicates the member is owed money (creditor).
+     * Negative balance indicates the member owes money (debtor).
+     */
+    public static Map<String, Double> computeNetBalances(Map<String, Double> paid, Map<String, Double> owed) {
+        Map<String, Double> netBalances = new HashMap<>();
+        Set<String> allMembers = new HashSet<>();
+        if (paid != null) allMembers.addAll(paid.keySet());
+        if (owed != null) allMembers.addAll(owed.keySet());
+        
+        for (String member : allMembers) {
+            Double pVal = (paid != null) ? paid.get(member) : null;
+            double amountPaid = (pVal != null) ? pVal : 0.0;
+            Double oVal = (owed != null) ? owed.get(member) : null;
+            double amountOwed = (oVal != null) ? oVal : 0.0;
+            
+            double net = Math.round((amountPaid - amountOwed) * 100.0) / 100.0;
+            netBalances.put(member, net);
+        }
+        return netBalances;
+    }
+    
+    /**
+     * Optimize settlement transactions using recursive greedy Min-Cash-Flow.
      * @param balances Map of username to net balance (positive = owed money, negative = owes money)
-     * @return List of optimal transactions to settle all balances
+     * @return List of minimal transactions to completely clear all balances
      */
     public static List<Transaction> optimizeSettlement(Map<String, Double> balances) {
         List<Transaction> transactions = new ArrayList<>();
+        if (balances == null || balances.isEmpty()) {
+            return transactions;
+        }
         
-        // Filter out zero balances and create working copy
+        // Filter out zero balances and maintain cent precision
         Map<String, Double> workingBalances = new HashMap<>();
         for (Map.Entry<String, Double> entry : balances.entrySet()) {
-            if (Math.abs(entry.getValue()) > 0.01) { // Ignore tiny amounts
-                workingBalances.put(entry.getKey(), entry.getValue());
+            Double valObj = entry.getValue();
+            if (valObj != null) {
+                double val = Math.round(valObj * 100.0) / 100.0;
+                if (Math.abs(val) > EPSILON) {
+                    workingBalances.put(entry.getKey(), val);
+                }
             }
         }
         
-        // Process until all balances are settled
-        while (!workingBalances.isEmpty()) {
-            // Find person with maximum credit (is owed most)
-            String maxCreditor = null;
-            double maxCredit = 0;
-            
-            for (Map.Entry<String, Double> entry : workingBalances.entrySet()) {
-                if (entry.getValue() > maxCredit) {
-                    maxCredit = entry.getValue();
-                    maxCreditor = entry.getKey();
-                }
-            }
-            
-            // Find person with maximum debit (owes most)
-            String maxDebtor = null;
-            double maxDebit = 0;
-            
-            for (Map.Entry<String, Double> entry : workingBalances.entrySet()) {
-                if (entry.getValue() < maxDebit) {
-                    maxDebit = entry.getValue();
-                    maxDebtor = entry.getKey();
-                }
-            }
-            
-            // If no creditor or debtor found, we're done
-            if (maxCreditor == null || maxDebtor == null) {
-                break;
-            }
-            
-            // Settle between max creditor and max debtor
-            double settlementAmount = Math.min(maxCredit, Math.abs(maxDebit));
-            
-            // Create transaction: debtor pays creditor
-            transactions.add(new Transaction(maxDebtor, maxCreditor, settlementAmount));
-            
-            // Update balances
-            workingBalances.put(maxCreditor, maxCredit - settlementAmount);
-            workingBalances.put(maxDebtor, maxDebit + settlementAmount);
-            
-            // Remove settled accounts
-            if (Math.abs(workingBalances.get(maxCreditor)) < 0.01) {
-                workingBalances.remove(maxCreditor);
-            }
-            if (Math.abs(workingBalances.get(maxDebtor)) < 0.01) {
-                workingBalances.remove(maxDebtor);
-            }
-        }
+        // Execute recursive greedy debt settlement
+        settleMinCashFlowRecursive(workingBalances, transactions);
         
         return transactions;
     }
     
     /**
-     * Calculate savings compared to direct settlement
-     * @param balances Original balances
-     * @return Savings information
+     * Recursive Min-Cash-Flow engine:
+     * Identifies the person with max debt and person with max credit, settles the minimum
+     * of their amounts, updates the state, and recurses until all accounts are cleared.
+     */
+    private static void settleMinCashFlowRecursive(Map<String, Double> balances, List<Transaction> transactions) {
+        if (balances.isEmpty()) {
+            return;
+        }
+        
+        String maxCreditor = null;
+        double maxCredit = 0.0;
+        
+        String maxDebtor = null;
+        double maxDebit = 0.0;
+        
+        for (Map.Entry<String, Double> entry : balances.entrySet()) {
+            double amount = entry.getValue();
+            if (amount > maxCredit) {
+                maxCredit = amount;
+                maxCreditor = entry.getKey();
+            }
+            if (amount < maxDebit) {
+                maxDebit = amount;
+                maxDebtor = entry.getKey();
+            }
+        }
+        
+        // Stop recursion when no creditor or debtor remains
+        if (maxCreditor == null || maxDebtor == null || maxCredit <= EPSILON || maxDebit >= -EPSILON) {
+            return;
+        }
+        
+        // Settle the minimum of what debtor owes and what creditor is owed
+        double settlementAmount = Math.round(Math.min(maxCredit, Math.abs(maxDebit)) * 100.0) / 100.0;
+        
+        if (settlementAmount > EPSILON) {
+            transactions.add(new Transaction(maxDebtor, maxCreditor, settlementAmount));
+            
+            double updatedCredit = Math.round((maxCredit - settlementAmount) * 100.0) / 100.0;
+            double updatedDebit = Math.round((maxDebit + settlementAmount) * 100.0) / 100.0;
+            
+            if (Math.abs(updatedCredit) <= EPSILON) {
+                balances.remove(maxCreditor);
+            } else {
+                balances.put(maxCreditor, updatedCredit);
+            }
+            
+            if (Math.abs(updatedDebit) <= EPSILON) {
+                balances.remove(maxDebtor);
+            } else {
+                balances.put(maxDebtor, updatedDebit);
+            }
+            
+            // Recurse for remaining balances
+            settleMinCashFlowRecursive(balances, transactions);
+        }
+    }
+    
+    /**
+     * Calculate direct vs optimized transaction count savings.
      */
     public static SettlementSavings calculateSavings(Map<String, Double> balances) {
+        if (balances == null || balances.isEmpty()) {
+            return new SettlementSavings(0, 0, 0);
+        }
+        
         List<Transaction> optimized = optimizeSettlement(balances);
         
-        // Count direct transactions (everyone with negative balance pays everyone with positive)
-        int directTransactions = 0;
-        for (double balance : balances.values()) {
-            if (balance < -0.01) directTransactions++;
-        }
-        for (double balance : balances.values()) {
-            if (balance > 0.01) directTransactions++;
-        }
-        // Actually it's debtors * creditors
-        long debtors = balances.values().stream().filter(b -> b < -0.01).count();
-        long creditors = balances.values().stream().filter(b -> b > 0.01).count();
-        directTransactions = (int)(debtors * creditors);
-        
+        long debtors = balances.values().stream().filter(b -> b != null && b < -EPSILON).count();
+        long creditors = balances.values().stream().filter(b -> b != null && b > EPSILON).count();
+        int directTransactions = (int) (debtors * creditors);
         int optimizedTransactions = optimized.size();
-        int saved = directTransactions - optimizedTransactions;
+        int saved = Math.max(0, directTransactions - optimizedTransactions);
         
         return new SettlementSavings(directTransactions, optimizedTransactions, saved);
     }
     
     /**
-     * Savings information
+     * Holds metrics regarding transaction minimization efficiency.
      */
     public static class SettlementSavings {
         public final int directTransactions;

@@ -31,6 +31,73 @@ class SettlementOptimizerTest {
     }
 
     @Test
+    @DisplayName("Should compute net member balances (Paid - Owed) accurately and null-safely")
+    void testComputeNetBalances() {
+        Map<String, Double> paid = new HashMap<>();
+        paid.put("Alice", 100.0);
+        paid.put("Bob", 50.0);
+        paid.put("Charlie", 0.0);
+        paid.put("David", null); // Safe null value check
+
+        Map<String, Double> owed = new HashMap<>();
+        owed.put("Alice", 50.0);
+        owed.put("Bob", 50.0);
+        owed.put("Charlie", 50.0);
+        owed.put("David", 20.0);
+
+        Map<String, Double> net = SettlementOptimizer.computeNetBalances(paid, owed);
+
+        assertEquals(50.0, net.get("Alice"), 0.001); // 100 - 50 = +50
+        assertEquals(0.0, net.get("Bob"), 0.001);    // 50 - 50 = 0
+        assertEquals(-50.0, net.get("Charlie"), 0.001); // 0 - 50 = -50
+        assertEquals(-20.0, net.get("David"), 0.001);   // 0 - 20 = -20
+    }
+
+    @Test
+    @DisplayName("Should resolve 4-person circular debt with zero transactions")
+    void testFourPersonCircularDebtZeroTransactions() {
+        // In a perfect circular debt, net balances sum to zero for everyone
+        Map<String, Double> balances = new HashMap<>();
+        balances.put("Alice", 0.0);
+        balances.put("Bob", 0.0);
+        balances.put("Charlie", 0.0);
+        balances.put("David", 0.0);
+
+        List<SettlementOptimizer.Transaction> transactions = SettlementOptimizer.optimizeSettlement(balances);
+
+        assertNotNull(transactions);
+        assertTrue(transactions.isEmpty(), "Circular balanced debts should require 0 transactions");
+    }
+
+    @Test
+    @DisplayName("Should settle complex 5-person group debt down to at most N-1 transactions")
+    void testComplexFivePersonSettlement() {
+        Map<String, Double> balances = new HashMap<>();
+        balances.put("Alice", -40.0);
+        balances.put("Bob", -25.0);
+        balances.put("Charlie", -15.0);
+        balances.put("David", 30.0);
+        balances.put("Emma", 50.0);
+        // Total negative = -80, total positive = +80
+
+        List<SettlementOptimizer.Transaction> transactions = SettlementOptimizer.optimizeSettlement(balances);
+
+        assertNotNull(transactions);
+        assertTrue(transactions.size() <= 4, "5 participants should settle in at most 4 transactions");
+
+        // Verify that after applying all transactions, every member's balance is zeroed
+        Map<String, Double> verificationBalances = new HashMap<>(balances);
+        for (SettlementOptimizer.Transaction tx : transactions) {
+            verificationBalances.put(tx.from, verificationBalances.get(tx.from) + tx.amount);
+            verificationBalances.put(tx.to, verificationBalances.get(tx.to) - tx.amount);
+        }
+
+        for (Map.Entry<String, Double> entry : verificationBalances.entrySet()) {
+            assertEquals(0.0, entry.getValue(), 0.01, "Member " + entry.getKey() + " must have 0 balance");
+        }
+    }
+
+    @Test
     @DisplayName("Should correctly calculate transaction savings")
     void testCalculateSavings() {
         Map<String, Double> balances = new HashMap<>();
@@ -47,15 +114,14 @@ class SettlementOptimizerTest {
     }
 
     @Test
-    @DisplayName("Should return empty transaction list when all balances are zero")
-    void testZeroBalances() {
-        Map<String, Double> balances = new HashMap<>();
-        balances.put("Alice", 0.0);
-        balances.put("Bob", 0.0);
+    @DisplayName("Should safely handle null or empty balances map")
+    void testNullOrEmptyBalances() {
+        List<SettlementOptimizer.Transaction> resultNull = SettlementOptimizer.optimizeSettlement(null);
+        assertNotNull(resultNull);
+        assertTrue(resultNull.isEmpty());
 
-        List<SettlementOptimizer.Transaction> transactions = SettlementOptimizer.optimizeSettlement(balances);
-
-        assertNotNull(transactions);
-        assertTrue(transactions.isEmpty());
+        List<SettlementOptimizer.Transaction> resultEmpty = SettlementOptimizer.optimizeSettlement(new HashMap<>());
+        assertNotNull(resultEmpty);
+        assertTrue(resultEmpty.isEmpty());
     }
 }
