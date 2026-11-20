@@ -114,6 +114,29 @@ class SettlementOptimizerTest {
     }
 
     @Test
+    @DisplayName("Should prioritize pairwise exact-match settlements directly")
+    void testExactMatchPairwiseSettlement() {
+        // Alice owes $45, Bob owes $20. Charlie is owed $45, David is owed $20.
+        // Pairwise exact match should pair Alice->Charlie ($45) and Bob->David ($20) in 2 clean transactions.
+        Map<String, Double> balances = new HashMap<>();
+        balances.put("Alice", -45.0);
+        balances.put("Bob", -20.0);
+        balances.put("Charlie", 45.0);
+        balances.put("David", 20.0);
+
+        List<SettlementOptimizer.Transaction> transactions = SettlementOptimizer.optimizeSettlement(balances);
+
+        assertNotNull(transactions);
+        assertEquals(2, transactions.size());
+
+        boolean aliceToCharlie = transactions.stream().anyMatch(t -> t.from.equals("Alice") && t.to.equals("Charlie") && Math.abs(t.amount - 45.0) < 0.001);
+        boolean bobToDavid = transactions.stream().anyMatch(t -> t.from.equals("Bob") && t.to.equals("David") && Math.abs(t.amount - 20.0) < 0.001);
+
+        assertTrue(aliceToCharlie, "Alice should settle directly with Charlie");
+        assertTrue(bobToDavid, "Bob should settle directly with David");
+    }
+
+    @Test
     @DisplayName("Should safely handle null or empty balances map")
     void testNullOrEmptyBalances() {
         List<SettlementOptimizer.Transaction> resultNull = SettlementOptimizer.optimizeSettlement(null);

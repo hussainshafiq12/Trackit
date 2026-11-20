@@ -83,12 +83,53 @@ public class SettlementOptimizer {
             }
         }
         
-        // Execute recursive greedy debt settlement
+        // Phase 1: Fast path for exact-match debts (Pairwise Cancellation)
+        // If debtor owes exactly what a creditor is owed, settle immediately to reduce recursion depth.
+        eliminateExactMatches(workingBalances, transactions);
+        
+        // Phase 2: Execute recursive greedy debt settlement for multi-party remaining balances
         settleMinCashFlowRecursive(workingBalances, transactions);
         
         return transactions;
     }
     
+    /**
+     * Fast-path optimization: scans for exact matching pairs where debtor owes
+     * precisely what a creditor is owed (|debit| == credit). Settling them directly
+     * reduces the problem size and greedy recursion depth from O(N) to O(N - 2k).
+     */
+    private static void eliminateExactMatches(Map<String, Double> balances, List<Transaction> transactions) {
+        boolean matchFound = true;
+        while (matchFound) {
+            matchFound = false;
+            String matchedDebtor = null;
+            String matchedCreditor = null;
+            double matchAmount = 0.0;
+            
+            for (Map.Entry<String, Double> dEntry : balances.entrySet()) {
+                if (dEntry.getValue() < -EPSILON) {
+                    double debt = Math.abs(dEntry.getValue());
+                    for (Map.Entry<String, Double> cEntry : balances.entrySet()) {
+                        if (cEntry.getValue() > EPSILON && Math.abs(debt - cEntry.getValue()) <= EPSILON) {
+                            matchedDebtor = dEntry.getKey();
+                            matchedCreditor = cEntry.getKey();
+                            matchAmount = debt;
+                            matchFound = true;
+                            break;
+                        }
+                    }
+                }
+                if (matchFound) break;
+            }
+            
+            if (matchFound && matchedDebtor != null && matchedCreditor != null) {
+                transactions.add(new Transaction(matchedDebtor, matchedCreditor, matchAmount));
+                balances.remove(matchedDebtor);
+                balances.remove(matchedCreditor);
+            }
+        }
+    }
+
     /**
      * Recursive Min-Cash-Flow engine:
      * Identifies the person with max debt and person with max credit, settles the minimum
