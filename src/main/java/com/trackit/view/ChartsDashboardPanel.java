@@ -340,36 +340,46 @@ public class ChartsDashboardPanel extends JPanel {
     /**
      * Calculate category totals
      */
-    private Map<String, Double> getCategoryTotals() {
+    public static double computeTotalSpending(List<Expense> list) {
+        if (list == null || list.isEmpty()) return 0.0;
+        return list.stream().mapToDouble(Expense::getAmount).sum();
+    }
+
+    public static Map<String, Double> computeCategoryTotals(List<Expense> list) {
         Map<String, Double> totals = new HashMap<>();
-        for (Expense expense : expenses) {
+        if (list == null) return totals;
+        for (Expense expense : list) {
             String category = expense.getCategory();
             totals.put(category, totals.getOrDefault(category, 0.0) + expense.getAmount());
         }
         return totals;
+    }
+
+    public static Map<String, Double> computeMonthlyTotals(List<Expense> list, int months) {
+        Map<String, Double> totals = new LinkedHashMap<>();
+        if (list == null) return totals;
+        LocalDate now = LocalDate.now();
+        for (int i = months - 1; i >= 0; i--) {
+            LocalDate monthDate = now.minusMonths(i);
+            String monthKey = monthDate.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            totals.put(monthKey, 0.0);
+        }
+        for (Expense expense : list) {
+            String expenseMonth = expense.getDate().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            totals.put(expenseMonth, totals.getOrDefault(expenseMonth, 0.0) + expense.getAmount());
+        }
+        return totals;
+    }
+
+    private Map<String, Double> getCategoryTotals() {
+        return computeCategoryTotals(expenses);
     }
     
     /**
      * Calculate monthly totals for last N months
      */
     private Map<String, Double> getMonthlyTotals(int months) {
-        Map<String, Double> totals = new LinkedHashMap<>();
-        LocalDate now = LocalDate.now();
-        
-        for (int i = months - 1; i >= 0; i--) {
-            LocalDate monthDate = now.minusMonths(i);
-            String monthKey = monthDate.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-            totals.put(monthKey, 0.0);
-        }
-        
-        for (Expense expense : expenses) {
-            String expenseMonth = expense.getDate().format(DateTimeFormatter.ofPattern("yyyy-MM"));
-            if (totals.containsKey(expenseMonth)) {
-                totals.put(expenseMonth, totals.get(expenseMonth) + expense.getAmount());
-            }
-        }
-        
-        return totals;
+        return computeMonthlyTotals(expenses, months);
     }
     
     /**
