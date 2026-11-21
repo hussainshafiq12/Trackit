@@ -46,4 +46,10 @@ class ModernFilterDialogTest {
         assertNotNull(dialog);
         dialog.dispose();
     }
+
+    @Test
+    @DisplayName("Should verify max amount ceiling constant is 1,000,000.0")
+    void testMaxAmountCeilingConstant() {
+        assertEquals(1000000.0, ModernFilterDialog.MAX_AMOUNT_LIMIT, 0.001);
+    }
 }

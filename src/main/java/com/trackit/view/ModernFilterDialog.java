@@ -15,6 +15,8 @@ import java.util.function.Consumer;
  */
 public class ModernFilterDialog extends JDialog {
 
+    public static final double MAX_AMOUNT_LIMIT = 1000000.0;
+
     private final JTextField startDateField;
     private final JTextField endDateField;
     private final JComboBox<String> categoryCombo;
@@ -67,8 +69,8 @@ public class ModernFilterDialog extends JDialog {
             categoryCombo.addItem(cat.name());
         }
 
-        minAmountSpinner = new JSpinner(new SpinnerNumberModel(0.0, 0.0, 100000.0, 10.0));
-        maxAmountSpinner = new JSpinner(new SpinnerNumberModel(10000.0, 0.0, 100000.0, 10.0));
+        minAmountSpinner = new JSpinner(new SpinnerNumberModel(0.0, 0.0, MAX_AMOUNT_LIMIT, 10.0));
+        maxAmountSpinner = new JSpinner(new SpinnerNumberModel(MAX_AMOUNT_LIMIT, 0.0, MAX_AMOUNT_LIMIT, 10.0));
         keywordField = new JTextField();
 
         formPanel.add(new JLabel("Start Date (YYYY-MM-DD):"));
@@ -112,7 +114,7 @@ public class ModernFilterDialog extends JDialog {
         endDateField.setText("");
         categoryCombo.setSelectedIndex(0);
         minAmountSpinner.setValue(0.0);
-        maxAmountSpinner.setValue(10000.0);
+        maxAmountSpinner.setValue(MAX_AMOUNT_LIMIT);
         keywordField.setText("");
         this.currentCriteria = new ExpenseSearchCriteria.Builder().build();
         if (onApplyCallback != null) {
@@ -159,12 +161,16 @@ public class ModernFilterDialog extends JDialog {
                                           "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        builder.minAmount(min);
-        builder.maxAmount(max);
+        if (min > 0.0) {
+            builder.minAmount(min);
+        }
+        if (max < MAX_AMOUNT_LIMIT) {
+            builder.maxAmount(max);
+        }
 
-        String kw = keywordField.getText().trim();
-        if (!kw.isEmpty()) {
-            builder.keyword(kw);
+        String rawKw = keywordField.getText();
+        if (rawKw != null && !rawKw.trim().isEmpty()) {
+            builder.keyword(rawKw.trim());
         }
 
         this.currentCriteria = builder.build();

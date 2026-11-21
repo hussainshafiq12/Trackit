@@ -86,7 +86,7 @@ public class ExpenseSearchCriteria implements Serializable {
         }
 
         public Builder category(String category) {
-            this.category = category;
+            this.category = (category != null && !category.trim().isEmpty()) ? category.trim() : null;
             return this;
         }
 
@@ -101,7 +101,7 @@ public class ExpenseSearchCriteria implements Serializable {
         }
 
         public Builder keyword(String keyword) {
-            this.keyword = keyword;
+            this.keyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
             return this;
         }
 

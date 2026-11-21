@@ -70,6 +70,19 @@ class ExpenseSearchCriteriaTest {
     }
 
     @Test
+    @DisplayName("Should treat whitespace-only keyword and category as unconstrained null filters")
+    void testWhitespaceKeywordAndCategorySanitization() {
+        ExpenseSearchCriteria criteria = new ExpenseSearchCriteria.Builder()
+                .keyword("   ")
+                .category("   ")
+                .build();
+
+        assertNull(criteria.getKeyword());
+        assertNull(criteria.getCategory());
+        assertFalse(criteria.hasActiveFilters());
+    }
+
+    @Test
     @DisplayName("Should throw ValidationException when startDate is after endDate")
     void testInvalidDateRangeThrowsValidationException() {
         LocalDate start = LocalDate.of(2026, 4, 1);
