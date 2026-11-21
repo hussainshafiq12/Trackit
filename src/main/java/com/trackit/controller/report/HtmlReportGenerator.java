@@ -3,8 +3,10 @@ package com.trackit.controller.report;
 import com.trackit.model.Expense;
 
 import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,6 +25,15 @@ public class HtmlReportGenerator implements ReportGenerator {
     public HtmlReportGenerator(String username, List<Expense> expenses) {
         this.username = username != null ? username : "anonymous";
         this.expenses = expenses != null ? new ArrayList<>(expenses) : Collections.emptyList();
+    }
+
+    private String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;");
     }
 
     @Override
@@ -47,7 +58,7 @@ public class HtmlReportGenerator implements ReportGenerator {
           .append("</style>\n</head>\n<body>\n")
           .append("<div class=\"container\">\n")
           .append("<h1>Trackit Financial Report</h1>\n")
-          .append("<div class=\"meta\">Generated for user: <strong>").append(username).append("</strong></div>\n")
+          .append("<div class=\"meta\">Generated for user: <strong>").append(escapeHtml(username)).append("</strong></div>\n")
           .append("<div class=\"summary\">\n")
           .append("<div class=\"card\">Total Spent: ").append(String.format(Locale.US, "$%.2f", total)).append("</div>\n")
           .append("<div class=\"card\">Transactions: ").append(expenses.size()).append("</div>\n")
@@ -55,8 +66,8 @@ public class HtmlReportGenerator implements ReportGenerator {
           .append("<table>\n<thead>\n<tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr>\n</thead>\n<tbody>\n");
 
         for (Expense e : expenses) {
-            String desc = e.getDescription() != null ? e.getDescription() : "";
-            String category = e.getCategory() != null ? e.getCategory() : "UNCATEGORIZED";
+            String desc = e.getDescription() != null ? escapeHtml(e.getDescription()) : "";
+            String category = e.getCategory() != null ? escapeHtml(e.getCategory()) : "UNCATEGORIZED";
             String dateStr = e.getDate() != null ? e.getDate().toString() : "";
 
             sb.append("<tr>")
@@ -77,7 +88,8 @@ public class HtmlReportGenerator implements ReportGenerator {
         if (reportContent == null) {
             generate();
         }
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filepath))) {
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(filepath), StandardCharsets.UTF_8))) {
             writer.write(reportContent);
             return true;
         } catch (IOException e) {

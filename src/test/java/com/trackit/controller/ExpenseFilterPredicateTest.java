@@ -86,4 +86,17 @@ class ExpenseFilterPredicateTest {
         List<Expense> filtered = ExpenseFilterPredicate.filter(sampleExpenses, criteria);
         assertEquals(2, filtered.size());
     }
+
+    @Test
+    @DisplayName("Should include expenses occurring on exact start date (inclusive boundary)")
+    void testFilterByExactStartDateInclusive() {
+        ExpenseSearchCriteria criteria = new ExpenseSearchCriteria.Builder()
+                .startDate(LocalDate.of(2026, 3, 5))
+                .endDate(LocalDate.of(2026, 3, 15))
+                .build();
+
+        List<Expense> filtered = ExpenseFilterPredicate.filter(sampleExpenses, criteria);
+        assertTrue(filtered.stream().anyMatch(e -> e.getDate().equals(LocalDate.of(2026, 3, 5))),
+                "Expense on the exact start date must be included");
+    }
 }

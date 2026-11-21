@@ -43,10 +43,10 @@ public class ExpenseFilterPredicate {
             return false;
         }
 
-        // Check start date constraint
+        // Check start date constraint (inclusive of start date)
         if (criteria.getStartDate() != null) {
             LocalDate date = expense.getDate();
-            if (date == null || !date.isAfter(criteria.getStartDate())) {
+            if (date == null || date.isBefore(criteria.getStartDate())) {
                 return false;
             }
         }

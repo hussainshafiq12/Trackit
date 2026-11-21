@@ -50,4 +50,17 @@ class HtmlReportTest {
         assertTrue(generator instanceof HtmlReportGenerator);
         assertEquals("HTML", generator.getReportType());
     }
+
+    @Test
+    @DisplayName("Should safely escape special HTML characters in descriptions and categories")
+    void testHtmlEscapesSpecialCharacters() {
+        List<Expense> list = new ArrayList<>();
+        list.add(new Expense("FOOD & DRINKS", 25.0, "Dinner <Team & Friends>", LocalDate.of(2026, 3, 1), "shafiq"));
+        ReportGenerator generator = ReportFactory.createHtmlReport("shafiq", list);
+        String html = generator.generate();
+
+        assertTrue(html.contains("FOOD &amp; DRINKS"));
+        assertTrue(html.contains("Dinner &lt;Team &amp; Friends&gt;"));
+        assertFalse(html.contains("<Team & Friends>"));
+    }
 }
