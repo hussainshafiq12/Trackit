@@ -55,6 +55,13 @@ public class ReportFactory {
     public static ReportGenerator createJsonReport(String username, List<Expense> expenses) {
         return new JsonReportGenerator(username, expenses);
     }
+
+    /**
+     * Create an HTML format financial export.
+     */
+    public static ReportGenerator createHtmlReport(String username, List<Expense> expenses) {
+        return new HtmlReportGenerator(username, expenses);
+    }
     
     /**
      * Create report based on type string.
@@ -94,6 +101,14 @@ public class ReportFactory {
                     return createJsonReport(identifier, ((ExpenseManager) dataSource).getAllExpenses(identifier));
                 }
                 throw new IllegalArgumentException("Invalid data source for JSON report");
+
+            case "HTML":
+                if (dataSource instanceof List) {
+                    return createHtmlReport(identifier, (List<Expense>) dataSource);
+                } else if (dataSource instanceof ExpenseManager) {
+                    return createHtmlReport(identifier, ((ExpenseManager) dataSource).getAllExpenses(identifier));
+                }
+                throw new IllegalArgumentException("Invalid data source for HTML report");
                 
             default:
                 throw new IllegalArgumentException("Unknown report type: " + reportType);

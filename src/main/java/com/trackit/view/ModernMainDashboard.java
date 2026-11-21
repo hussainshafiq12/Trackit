@@ -4,6 +4,7 @@ import com.trackit.controller.*;
 import com.trackit.controller.report.*;
 import com.trackit.model.Expense;
 import com.trackit.model.ExpenseCategory;
+import com.trackit.model.ExpenseSearchCriteria;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -408,10 +409,14 @@ public class ModernMainDashboard extends JFrame {
         JButton resetBtn = UITheme.createSecondaryButton("Reset");
         resetBtn.addActionListener(e -> resetFilters());
 
+        JButton advFilterBtn = UITheme.createSecondaryButton("🔍 Filter");
+        advFilterBtn.addActionListener(e -> openAdvancedFilterDialog());
+
         leftTools.add(filterLabel);
         leftTools.add(filterCategoryBox);
         leftTools.add(filterPeriodBox);
         leftTools.add(resetBtn);
+        leftTools.add(advFilterBtn);
 
         // Right side - Actions
         JPanel rightTools = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
@@ -644,6 +649,19 @@ public class ModernMainDashboard extends JFrame {
         dialog.setVisible(true);
     }
 
+    private void openAdvancedFilterDialog() {
+        ModernFilterDialog dialog = new ModernFilterDialog(this, criteria -> {
+            if (criteria != null && criteria.hasActiveFilters()) {
+                this.filteredExpenses = new ArrayList<>(ExpenseFilterPredicate.filter(allExpenses, criteria));
+                refreshTable();
+                updateStatistics();
+            } else {
+                applyFilters();
+            }
+        });
+        dialog.setVisible(true);
+    }
+
     private void openRecurringExpenses() {
         // Show dialog with recurring expenses list
         JOptionPane.showMessageDialog(this,
@@ -654,7 +672,7 @@ public class ModernMainDashboard extends JFrame {
     }
 
     private void exportReport() {
-        String[] options = {"Personal Report (.txt)", "CSV Export (.csv)", "JSON Export (.json)", "Cancel"};
+        String[] options = {"Personal Report (.txt)", "CSV Export (.csv)", "JSON Export (.json)", "HTML Web Report (.html)", "Cancel"};
         int choice = JOptionPane.showOptionDialog(this,
             "Select report format to export asynchronously:",
             "Export Financial Report (REQ-QA-01)",
@@ -662,7 +680,7 @@ public class ModernMainDashboard extends JFrame {
             JOptionPane.QUESTION_MESSAGE,
             null, options, options[0]);
         
-        if (choice < 0 || choice >= 3) {
+        if (choice < 0 || choice >= 4) {
             return;
         }
 
@@ -677,9 +695,12 @@ public class ModernMainDashboard extends JFrame {
         } else if (choice == 1) {
             generator = ReportFactory.createCsvReport(currentUser, allExpenses);
             filename = "expense_export_" + timestamp + ".csv";
-        } else {
+        } else if (choice == 2) {
             generator = ReportFactory.createJsonReport(currentUser, allExpenses);
             filename = "expense_export_" + timestamp + ".json";
+        } else {
+            generator = ReportFactory.createHtmlReport(currentUser, allExpenses);
+            filename = "expense_export_" + timestamp + ".html";
         }
 
         // Execute export asynchronously without blocking Swing UI thread (REQ-QA-01)
