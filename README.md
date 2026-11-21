@@ -8,7 +8,9 @@ A comprehensive desktop personal finance and shared expense management system de
 
 ## Architecture Overview
 * **Layered 3-Tier MVC + DAO Architecture**
-* **Design Patterns:** Singleton, Strategy, Command, Factory Method, Facade
+* **Design Patterns:** Singleton (DatabaseManager), Strategy (SplitStrategy), Command (UndoManager), Factory Method (ReportFactory: CSV, JSON, HTML), Facade (ExpenseManager, GroupController), Builder (ExpenseSearchCriteria).
+* **Multi-Format Reporting:** Dynamic export to TXT, CSV, JSON, and styled browser-ready HTML via `ReportFactory`.
+* **Interactive Query & Filtering:** In-memory multi-criteria transaction search across date ranges, categories, amount bounds, and keywords via `ExpenseFilterPredicate` and `ModernFilterDialog`.
 * **Concurrency:** Asynchronous non-blocking report generation via `CompletableFuture` & thread-safe disk persistence via `ReentrantReadWriteLock`.
 * **Testing:** Test-Driven Development (TDD) using JUnit 5 and JaCoCo coverage tracking.
 
